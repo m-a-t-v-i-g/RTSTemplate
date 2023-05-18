@@ -22,4 +22,6 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	void MovePositionX();
+	void MovePositionY();
 };

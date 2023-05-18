@@ -26,3 +26,13 @@ void ARTSCameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 }
 
+void ARTSCameraPawn::MovePositionX()
+{
+	
+}
+
+void ARTSCameraPawn::MovePositionY()
+{
+	
+}
+
