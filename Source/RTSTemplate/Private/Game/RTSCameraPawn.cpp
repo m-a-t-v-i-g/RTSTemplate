@@ -5,7 +5,9 @@
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Camera/CameraComponent.h"
+#include "Game/RTSHUD.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 ARTSCameraPawn::ARTSCameraPawn()
 {
@@ -14,13 +16,13 @@ ARTSCameraPawn::ARTSCameraPawn()
 	
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>("Spring Arm");
 	SpringArmComponent->SetupAttachment(SceneComponent);
-	SpringArmComponent->TargetArmLength = 1800.0f;
-	SpringArmComponent->SetRelativeRotation(FRotator(-65.0f, 0.0f, 0.0f));
+	SpringArmComponent->TargetArmLength = ZoomDegree * ZoomStep;
+	SpringArmComponent->SetRelativeRotation(FRotator(-65.0, 0.0, 0.0));
 	SpringArmComponent->bDoCollisionTest = false;
 	SpringArmComponent->bUsePawnControlRotation = false;
 	SpringArmComponent->bInheritYaw = false;
 	SpringArmComponent->bEnableCameraLag = true;
-	SpringArmComponent->CameraLagSpeed = 7.5f;
+	SpringArmComponent->CameraLagSpeed = 7.5;
 	SpringArmComponent->bEnableCameraRotationLag = true;
 	SpringArmComponent->CameraRotationLagSpeed = 7.5;
 
@@ -33,15 +35,7 @@ ARTSCameraPawn::ARTSCameraPawn()
 void ARTSCameraPawn::BeginPlay()
 {
 	Super::BeginPlay();
-
-	auto PlayerController = Cast<APlayerController>(Controller);
-	if (PlayerController)
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}
+	
 }
 
 void ARTSCameraPawn::Tick(float DeltaTime)
@@ -50,7 +44,8 @@ void ARTSCameraPawn::Tick(float DeltaTime)
 
 	DeltaSeconds = DeltaTime;
 
-	MovePosition();
+	CameraPosition();
+	UpdateZoom();
 }
 
 void ARTSCameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -59,13 +54,18 @@ void ARTSCameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	
 	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		//EnhancedInputComponent->BindAction(LeftMouseButtonAction, ETriggerEvent::Completed, this, &ARTSCameraPawn::LeftMouseClick);
-		//EnhancedInputComponent->BindAction(RightMouseButtonAction, ETriggerEvent::Completed, this, &ARTSCameraPawn::RightMouseClick);
+		EnhancedInputComponent->BindAction(CameraZoomAction, ETriggerEvent::Started, this, &ARTSCameraPawn::CameraZoom);
+		EnhancedInputComponent->BindAction(CameraRotationAction, ETriggerEvent::Triggered, this, &ARTSCameraPawn::CameraRotation);
+		
+		EnhancedInputComponent->BindAction(LeftMouseButtonAction, ETriggerEvent::Started, this, &ARTSCameraPawn::LeftMousePressed);
+		EnhancedInputComponent->BindAction(LeftMouseButtonAction, ETriggerEvent::Completed, this, &ARTSCameraPawn::LeftMouseReleased);
+
+		EnhancedInputComponent->BindAction(RightMouseButtonAction, ETriggerEvent::Started, this, &ARTSCameraPawn::RightMousePressed);
+		EnhancedInputComponent->BindAction(RightMouseButtonAction, ETriggerEvent::Completed, this, &ARTSCameraPawn::RightMouseReleased);
 	}
 }
 
-
-void ARTSCameraPawn::MovePosition()
+void ARTSCameraPawn::CameraPosition()
 {
 	if (!GetWorld()) return;
 	
@@ -73,26 +73,147 @@ void ARTSCameraPawn::MovePosition()
 
 	float MousePosX;
 	float MousePosY;
+	
 	auto GetViewportSize = UWidgetLayoutLibrary::GetViewportSize(GetWorld());
 	auto GetMousePosition = GetPlayerController()->GetMousePosition(MousePosX, MousePosY);
-
+	
 	if (GetMousePosition)
 	{
+		const FRotator CameraRotation = CameraComponent->GetComponentRotation();
+		const FRotator CameraRotationYaw(0.0, CameraRotation.Yaw, 0.0);
+
+		FRotationMatrix Direction = FRotationMatrix(CameraRotationYaw);
+		
 		if (MousePosX / GetViewportSize.X >= 0.99)
 		{
-			AddActorLocalOffset(FVector(0.0, DeltaSeconds * CameraSpeed, 0.0));
+			AddActorLocalOffset(Direction.GetUnitAxis(EAxis::Y) * DeltaSeconds * CameraMovementSpeed);
 		}
 		else if (MousePosX / GetViewportSize.X <= 0.01)
 		{
-			AddActorLocalOffset(FVector(0.0, DeltaSeconds * CameraSpeed * -1, 0.0));
+			AddActorLocalOffset(Direction.GetUnitAxis(EAxis::Y) * DeltaSeconds * CameraMovementSpeed * -1);
 		}
 		if (MousePosY / GetViewportSize.Y >= 0.99)
 		{
-			AddActorLocalOffset(FVector(DeltaSeconds * CameraSpeed * -1, 0.0, 0.0));
+			AddActorLocalOffset(Direction.GetUnitAxis(EAxis::X) * DeltaSeconds * CameraMovementSpeed * -1);
 		}
 		else if (MousePosY / GetViewportSize.Y <= 0.01)
 		{
-			AddActorLocalOffset(FVector(DeltaSeconds * CameraSpeed, 0.0, 0.0));
+			AddActorLocalOffset(Direction.GetUnitAxis(EAxis::X) * DeltaSeconds * CameraMovementSpeed);
 		}
 	}
+}
+
+void ARTSCameraPawn::CameraZoom(const FInputActionValue& Value)
+{
+	if (!SpringArmComponent || !CameraComponent) return;
+	
+	if (Value.Get<float>() == 1.0)
+	{
+		ZoomDegree--;
+		ZoomDegree = FMath::Clamp(ZoomDegree, ZoomMin, ZoomMax);
+	}
+	if (Value.Get<float>() == -1.0)
+	{
+		ZoomDegree++;
+		ZoomDegree = FMath::Clamp(ZoomDegree, ZoomMin, ZoomMax);
+	}
+}
+
+void ARTSCameraPawn::CameraRotation(const FInputActionValue& Value)
+{
+	if (!SpringArmComponent || !CameraComponent) return;
+
+	FVector2D MouseDelta;
+	GetPlayerController()->GetInputMouseDelta(MouseDelta.X, MouseDelta.Y);
+
+	float RotationPitch = SpringArmComponent->GetComponentRotation().Pitch + MouseDelta.Y * CameraRotationSpeed;
+	float RotationYaw = SpringArmComponent->GetComponentRotation().Yaw + MouseDelta.X * CameraRotationSpeed;
+
+	SpringArmComponent->SetWorldRotation(FRotator(UKismetMathLibrary::Clamp(RotationPitch, -80.0, 0.0), RotationYaw, 0.0));
+}
+
+void ARTSCameraPawn::LeftMousePressed()
+{
+	if (!HUD) return;
+	
+	HUD->StartSelecting();
+}
+
+void ARTSCameraPawn::LeftMouseReleased()
+{
+	if (!HUD) return;
+
+	HUD->StopSelecting();
+}
+
+void ARTSCameraPawn::RightMousePressed()
+{
+	
+}
+
+void ARTSCameraPawn::RightMouseReleased()
+{
+	if (!HasSelectedUnits()) return;
+	
+	MoveUnitsToLocation();
+}
+
+void ARTSCameraPawn::UpdateZoom()
+{
+	float CurrentZoom = SpringArmComponent->TargetArmLength;
+	SpringArmComponent->TargetArmLength = UKismetMathLibrary::FInterpTo(CurrentZoom, ZoomDegree * ZoomStep, DeltaSeconds, 4.5);
+}
+
+void ARTSCameraPawn::GetSelectedUnits()
+{
+	if (HUD)
+	{
+		SelectedUnits = HUD->SelectedUnits;
+		ServerGetSelectedUnits(SelectedUnits);
+	}
+}
+
+bool ARTSCameraPawn::HasSelectedUnits()
+{
+	return SelectedUnits.Num() > 0;
+}
+
+void ARTSCameraPawn::MoveUnitsToLocation()
+{
+	
+}
+
+void ARTSCameraPawn::InitInputs_Implementation()
+{
+	if (!GetPlayerController()) return;
+
+	auto Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetPlayerController()->GetLocalPlayer());
+	if (!Subsystem) return;
+	
+	Subsystem->AddMappingContext(DefaultMappingContext, 0);
+}
+
+void ARTSCameraPawn::InitHUD_Implementation()
+{
+	if (!GetPlayerController()) return;
+
+	auto GetHUD = GetPlayerController()->GetHUD();
+	if (!GetHUD) return;
+
+	HUD = Cast<ARTSHUD>(GetHUD);
+}
+
+void ARTSCameraPawn::ServerGetSelectedUnits_Implementation(const TArray<ARTSUnit*>& GetSelectedUnits)
+{
+	SelectedUnits = GetSelectedUnits;
+}
+
+void ARTSCameraPawn::ServerMoveUnitsToLocation_Implementation(FHitResult GetHitResult)
+{
+	
+}
+
+void ARTSCameraPawn::ClientMoveLocationPoint_Implementation(FVector HitLocation)
+{
+	
 }
