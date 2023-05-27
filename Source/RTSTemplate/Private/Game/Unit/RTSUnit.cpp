@@ -1,6 +1,7 @@
 // Real Time Strategy C++ template by matvig.
 
 #include "Game/Unit/RTSUnit.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 
 ARTSUnit::ARTSUnit()
 {
@@ -20,41 +21,42 @@ void ARTSUnit::Tick(float DeltaTime)
 
 }
 
-void ARTSUnit::SetFound()
+bool ARTSUnit::SetUnitIsFound(bool IsFound)
 {
-	UnitFound = true;
-	GEngine->AddOnScreenDebugMessage(4, 1.5, FColor::Green, TEXT("Found"));
+	bIsFound = IsFound;
+	if (IsFound)
+	{
+		GEngine->AddOnScreenDebugMessage(5, 1.5, FColor::Green, TEXT("Found"));
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(5, 1.5, FColor::Green, TEXT("Not found"));
+	}
+	return IsFound;
 }
 
-void ARTSUnit::SetNotFound()
+bool ARTSUnit::SetUnitIsSelected(bool IsSelected)
 {
-	UnitFound = false;
-	GEngine->AddOnScreenDebugMessage(4, 1.5, FColor::Red, TEXT("Not found"));
+	bIsSelected = IsSelected;
+	if (IsSelected)
+	{
+		GEngine->AddOnScreenDebugMessage(5, 1.5, FColor::Green, TEXT("Selected"));
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(5, 1.5, FColor::Green, TEXT("Deselected"));
+	}
+	return IsSelected;
 }
 
-void ARTSUnit::SetSelected()
+void ARTSUnit::MoveToLocation()
 {
-	UnitIsSelected = true;
-	GEngine->AddOnScreenDebugMessage(4, 1.5, FColor::Green, TEXT("Selected"));
+	ServerMoveToLocation();
 }
 
-void ARTSUnit::SetDeselected()
+void ARTSUnit::ServerMoveToLocation_Implementation()
 {
-	UnitIsSelected = false;
-	GEngine->AddOnScreenDebugMessage(4, 1.5, FColor::Red, TEXT("Deselected"));
-}
+	if (!GetMovementComponent()) return;
 
-bool ARTSUnit::CanBeFound()
-{
-	return !UnitIsSelected;
-}
-
-bool ARTSUnit::CanBeSelected()
-{
-	return CanBeFound();
-}
-
-void ARTSUnit::MoveToLocation_Implementation()
-{
-	
+	UAIBlueprintHelperLibrary::SimpleMoveToLocation(GetController(), LocationToMove);
 }

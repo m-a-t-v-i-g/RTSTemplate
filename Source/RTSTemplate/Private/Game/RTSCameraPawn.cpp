@@ -7,7 +7,10 @@
 #include "Camera/CameraComponent.h"
 #include "Game/RTSHUD.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Interfaces/RTSUnitInterface.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetStringLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 ARTSCameraPawn::ARTSCameraPawn()
 {
@@ -32,6 +35,12 @@ ARTSCameraPawn::ARTSCameraPawn()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+void ARTSCameraPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+}
+
 void ARTSCameraPawn::BeginPlay()
 {
 	Super::BeginPlay();
@@ -41,7 +50,9 @@ void ARTSCameraPawn::BeginPlay()
 void ARTSCameraPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	
+	DebugMessage();
+	
 	DeltaSeconds = DeltaTime;
 
 	CameraPosition();
@@ -160,17 +171,18 @@ void ARTSCameraPawn::RightMouseReleased()
 
 void ARTSCameraPawn::UpdateZoom()
 {
+	if (!SpringArmComponent) return;
+	
 	float CurrentZoom = SpringArmComponent->TargetArmLength;
 	SpringArmComponent->TargetArmLength = UKismetMathLibrary::FInterpTo(CurrentZoom, ZoomDegree * ZoomStep, DeltaSeconds, 4.5);
 }
 
-void ARTSCameraPawn::GetSelectedUnits()
+void ARTSCameraPawn::GetSelectedUnits(const TArray<AActor*> &NewSelectedUnits)
 {
-	if (HUD)
-	{
-		SelectedUnits = HUD->SelectedUnits;
-		ServerGetSelectedUnits(SelectedUnits);
-	}
+	if (!HUD) return;
+
+	SelectedUnits = NewSelectedUnits;
+	ServerGetSelectedUnits(NewSelectedUnits);
 }
 
 bool ARTSCameraPawn::HasSelectedUnits()
@@ -180,7 +192,14 @@ bool ARTSCameraPawn::HasSelectedUnits()
 
 void ARTSCameraPawn::MoveUnitsToLocation()
 {
+	if (!GetPlayerController()) return;
 	
+	FHitResult HitResult;
+	
+	GetPlayerController()->GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
+	
+	ServerMoveUnitsToLocation(HitResult.Location);
+	ClientMoveLocationPoint(HitResult.Location);
 }
 
 void ARTSCameraPawn::InitInputs_Implementation()
@@ -201,19 +220,37 @@ void ARTSCameraPawn::InitHUD_Implementation()
 	if (!GetHUD) return;
 
 	HUD = Cast<ARTSHUD>(GetHUD);
+	HUD->OnUpdateSelectedUnits.AddUObject(this, &ARTSCameraPawn::GetSelectedUnits);
 }
 
-void ARTSCameraPawn::ServerGetSelectedUnits_Implementation(const TArray<ARTSUnit*>& GetSelectedUnits)
+void ARTSCameraPawn::ServerGetSelectedUnits_Implementation(const TArray<AActor*> &NewSelectedUnits)
 {
-	SelectedUnits = GetSelectedUnits;
+	SelectedUnits = NewSelectedUnits;
 }
 
-void ARTSCameraPawn::ServerMoveUnitsToLocation_Implementation(FHitResult GetHitResult)
+void ARTSCameraPawn::ServerMoveUnitsToLocation_Implementation(FVector HitLocation)
 {
-	
+	for (auto SelectedUnit : SelectedUnits)
+	{
+		auto TempUnit = Cast<IRTSUnitInterface>(SelectedUnit);
+		if (TempUnit)
+		{
+			TempUnit->LocationToMove = HitLocation;
+			TempUnit->MoveToLocation();
+		}
+	}
 }
 
 void ARTSCameraPawn::ClientMoveLocationPoint_Implementation(FVector HitLocation)
 {
+	if (!GetWorld()) return;
 	
+	DrawDebugSphere(GetWorld(), HitLocation, 30.0, 24, FColor::Green, false, 1.0);
+}
+
+void ARTSCameraPawn::DebugMessage_Implementation()
+{
+	FString UnitsNum = UKismetStringLibrary::Conv_IntToString(SelectedUnits.Num());
+	FString UnitsNumMessage = FString::Printf(TEXT("Units is selected by Camera Pawn: ")) + UnitsNum;
+	GEngine->AddOnScreenDebugMessage(4, 1.5, FColor::Red, UnitsNumMessage);
 }

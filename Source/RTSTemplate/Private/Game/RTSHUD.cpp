@@ -1,8 +1,6 @@
 // Real Time Strategy C++ template by matvig.
 
 #include "Game/RTSHUD.h"
-#include "Game/RTSCameraPawn.h"
-#include "Game/Unit/RTSUnit.h"
 #include "Kismet/KismetStringLibrary.h"
 
 void ARTSHUD::DrawHUD()
@@ -37,15 +35,29 @@ FVector2D ARTSHUD::GetMousePosition()
 
 void ARTSHUD::StartSelecting()
 {
+	if (SelectedUnits.Num() > 0)
+	{
+		for (auto SelectedUnit : SelectedUnits)
+		{
+			for (auto UnitInCursor : UnitsInCursor)
+			{
+				if (SelectedUnit == UnitInCursor || UnitsInCursor.Contains(SelectedUnit)) return;
+			}
+		}
+	}
+	
 	bSelecting = true;
 	InitialPoint = GetMousePosition();
 
-	
+	ClearSelectedUnits();
 }
 
 void ARTSHUD::StopSelecting()
 {
 	bSelecting = false;
+
+	UpdateSelectedUnits();
+	DebugUnits();
 }
 
 void ARTSHUD::FoundUnitByCursor()
@@ -57,25 +69,18 @@ void ARTSHUD::FoundUnitByCursor()
 	auto GetHitResult = HitResult.GetActor();
 	if (GetHitResult)
 	{
-		auto GetHitActor = GetHitResult->IsA(ARTSUnit::StaticClass());
-		auto GetHitUnit = Cast<ARTSUnit>(GetHitResult);
-		if (GetHitActor)
+		auto UnitInterface = Cast<IRTSUnitInterface>(GetHitResult);
+		if (UnitInterface)
 		{
-			if (!UnitsInCursor.Contains(GetHitUnit) && GetHitUnit->CanBeFound())
-			{
-				GetHitUnit->SetFound();
-				UnitsInCursor.AddUnique(GetHitUnit);
-			}
+			UnitInterface->SetUnitIsFound(true);
+			UnitsInCursor.AddUnique(UnitInterface);
 		}
-		else if (!GetHitActor && UnitsInCursor.Num() > 0)
+		if (!UnitInterface && UnitsInCursor.Num() > 0)
 		{
-			for (int i = 0; i < UnitsInCursor.Num(); ++i)
+			for (int i = 0; i < UnitsInCursor.Num(); i++)
 			{
-				if (!UnitsInCursor[i]->UnitIsSelected)
-				{
-					UnitsInCursor[i]->SetNotFound();
-					UnitsInCursor.RemoveAt(i);
-				}
+				UnitsInCursor[i]->SetUnitIsFound(false);
+				UnitsInCursor.RemoveAt(i);
 			}
 		}
 	}
@@ -83,29 +88,30 @@ void ARTSHUD::FoundUnitByCursor()
 
 void ARTSHUD::FoundUnitsInRect(FVector2D FirstPoint, FVector2D SecondPoint)
 {
-	TArray<ARTSUnit*> FoundUnits;
-	
-	auto GetUnitsInRect = GetActorsInSelectionRectangle<ARTSUnit>(FirstPoint, SecondPoint, FoundUnits, false, false);
+	TArray<AActor*> FoundUnits;
+	auto GetUnitsInRect = GetUnitsInSelectionRectangle<AActor>(FirstPoint, SecondPoint, FoundUnits, false, false);
 	if (GetUnitsInRect)
 	{
-		for (int i = 0; i < FoundUnits.Num(); ++i)
+		for (auto FoundUnit : FoundUnits)
 		{
-			if (!UnitsInRect.Contains(FoundUnits[i]))
+			auto TempUnit = Cast<IRTSUnitInterface>(FoundUnit);
+			if (TempUnit)
 			{
-				if (FoundUnits.IsValidIndex(i))
+				if (!UnitsInRect.Contains(TempUnit))
 				{
-					FoundUnits[i]->SetFound();
-					UnitsInRect.AddUnique(FoundUnits[i]);
+					TempUnit->SetUnitIsFound(true);
+					UnitsInRect.AddUnique(TempUnit);
 				}
 			}
 		}
-		for (int i = 0; i < UnitsInRect.Num(); ++i)
+		for (int i = 0; i < UnitsInRect.Num(); i++)
 		{
-			if (!FoundUnits.Contains(UnitsInRect[i]))
+			auto TempUnit = UnitsInRect[i];
+			if (TempUnit)
 			{
-				if (UnitsInRect.IsValidIndex(i))
+				if (!FoundUnits.Contains(Cast<AActor>(TempUnit)))
 				{
-					UnitsInRect[i]->SetNotFound();
+					TempUnit->SetUnitIsFound(false);
 					UnitsInRect.RemoveAt(i);
 				}
 			}
@@ -117,21 +123,21 @@ void ARTSHUD::UpdateSelectedUnits()
 {
 	if (UnitsInRect.Num() > 0)
 	{
-		auto CameraPawn = Cast<ARTSCameraPawn>(GetOwningPawn());
+		TArray<AActor*> TempUnits;
 		for (auto UnitInRect : UnitsInRect)
 		{
-			if (IsValid(UnitInRect))
+			auto TempUnit = Cast<AActor>(UnitInRect);
+			if (IsValid(TempUnit))
 			{
-				if (UnitInRect->UnitIsSelected) return;
-				
-				UnitInRect->SetNotFound();
-				UnitInRect->SetSelected();
+				UnitInRect->SetUnitIsFound(false);
+				UnitInRect->SetUnitIsSelected(true);
+				TempUnits.AddUnique(TempUnit);
 			}
 		}
 		SelectedUnits = UnitsInRect;
 		UnitsInRect.Empty();
 
-		CameraPawn->GetSelectedUnits();
+		OnUpdateSelectedUnits.Broadcast(TempUnits);
 	}
 }
 
@@ -139,24 +145,39 @@ void ARTSHUD::ClearSelectedUnits()
 {
 	if (SelectedUnits.Num() > 0)
 	{
-		auto CameraPawn = Cast<ARTSCameraPawn>(GetOwningPawn());
+		TArray<AActor*> TempUnits;
 		for (auto SelectedUnit : SelectedUnits)
 		{
-			if (IsValid(SelectedUnit))
+			if (UnitsInCursor.Contains(SelectedUnit))
 			{
-				if (SelectedUnit->UnitIsSelected)
-				{
-					SelectedUnit->SetDeselected();
-				}
+				return;
+			}
+		}
+		for (auto SelectedUnit : SelectedUnits)
+		{
+			auto TempUnit = Cast<AActor>(SelectedUnit);
+			if (IsValid(TempUnit))
+			{
+				SelectedUnit->SetUnitIsSelected(false);
+				TempUnits.Empty();
 			}
 		}
 		SelectedUnits.Empty();
-
-		CameraPawn->GetSelectedUnits();
 		
-		//GEngine->AddOnScreenDebugMessage(4, 1.5, FColor::Red, TEXT("Selecting canceled"));
+		OnUpdateSelectedUnits.Broadcast(TempUnits);
 	}
 	UnitsInCursor.Empty();
+}
+
+void ARTSHUD::DebugUnits()
+{
+	if (SelectedUnits.Num() <= 0) return;
+	
+	for (auto SelectedUnit : SelectedUnits)
+	{
+		auto SelectedActor = Cast<AActor>(SelectedUnit);
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *SelectedActor->GetName());
+	}
 }
 
 void ARTSHUD::DrawRectangle_Implementation()
@@ -171,12 +192,12 @@ void ARTSHUD::DebugMessage_Implementation()
 	FString UnitsInCursorNum = UKismetStringLibrary::Conv_IntToString(UnitsInCursor.Num());
 	FString UnitsInCursorNumMessage = FString::Printf(TEXT("Units by cursor found: ")) + UnitsInCursorNum;
 	GEngine->AddOnScreenDebugMessage(3, 1.5, FColor::Yellow, UnitsInCursorNumMessage);
-	
+
 	FString UnitsInRectNum = UKismetStringLibrary::Conv_IntToString(UnitsInRect.Num());
 	FString UnitsInRectNumMessage = FString::Printf(TEXT("Units in selection rectangle found: ")) + UnitsInRectNum;
 	GEngine->AddOnScreenDebugMessage(2, 1.5, FColor::Yellow, UnitsInRectNumMessage);
-	
+
 	FString UnitsNum = UKismetStringLibrary::Conv_IntToString(SelectedUnits.Num());
-	FString UnitsNumMessage = FString::Printf(TEXT("Units is selected: ")) + UnitsNum;
+	FString UnitsNumMessage = FString::Printf(TEXT("Units is selected by HUD: ")) + UnitsNum;
 	GEngine->AddOnScreenDebugMessage(1, 1.5, FColor::Yellow, UnitsNumMessage);
 }

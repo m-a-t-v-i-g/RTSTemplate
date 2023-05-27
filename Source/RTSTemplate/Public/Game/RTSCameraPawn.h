@@ -21,6 +21,8 @@ class RTSTEMPLATE_API ARTSCameraPawn : public APawn
 public:
 	ARTSCameraPawn();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
 protected:
 	virtual void BeginPlay() override;
 	
@@ -51,7 +53,8 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, Category = "HUD")
 	TObjectPtr<ARTSHUD> HUD;
 
-	TArray<ARTSUnit*> SelectedUnits;
+	UPROPERTY(VisibleDefaultsOnly, Category = "HUD")
+	TArray<AActor*> SelectedUnits;
 
 	float DeltaSeconds = 0.0;
 	
@@ -59,7 +62,7 @@ protected:
 	float CameraMovementSpeed = 3000.0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera")
-	float CameraRotationSpeed = 2.0;
+	float CameraRotationSpeed = 4.0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera|Zoom")
 	int ZoomMin = 1;
@@ -92,7 +95,7 @@ public:
 	
 	void UpdateZoom();
 
-	void GetSelectedUnits();
+	void GetSelectedUnits(const TArray<AActor*>& NewSelectedUnits);
 	bool HasSelectedUnits();
 	
 	void MoveUnitsToLocation();
@@ -112,11 +115,14 @@ public:
 	void InitHUD();
 	
 	UFUNCTION(Server, Reliable)
-	void ServerGetSelectedUnits(const TArray<ARTSUnit*> &GetSelectedUnits);
+	void ServerGetSelectedUnits(const TArray<AActor*> &NewSelectedUnits);
 	
 	UFUNCTION(Server, Reliable)
-	void ServerMoveUnitsToLocation(FHitResult GetHitResult);
+	void ServerMoveUnitsToLocation(FVector HitLocation);
 	
 	UFUNCTION(Client, Reliable)
 	void ClientMoveLocationPoint(FVector HitLocation);
+
+	UFUNCTION(Client, Reliable)
+	void DebugMessage();
 };

@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Pawn.h"
+#include "GameFramework/Character.h"
+#include "Interfaces/RTSUnitInterface.h"
 #include "RTSUnit.generated.h"
 
 UCLASS()
-class RTSTEMPLATE_API ARTSUnit : public APawn
+class RTSTEMPLATE_API ARTSUnit : public ACharacter, public IRTSUnitInterface
 {
 	GENERATED_BODY()
 	
@@ -19,21 +20,12 @@ protected:
 
 public:	
 	virtual void Tick(float DeltaTime) override;
-
-	bool UnitFound = false;
-	bool UnitIsSelected = false;
-
-	FVector LocationToMove;
 	
-	void SetFound();
-	void SetNotFound();
-	
-	void SetSelected();
-	void SetDeselected();
+	virtual bool SetUnitIsFound(bool IsFound) override;
+	virtual bool SetUnitIsSelected(bool IsSelected) override;
 
-	bool CanBeFound();
-	bool CanBeSelected();
-	
+	virtual void MoveToLocation() override;
+
 	UFUNCTION(Server, Reliable)
-	void MoveToLocation();
+	void ServerMoveToLocation();
 };
