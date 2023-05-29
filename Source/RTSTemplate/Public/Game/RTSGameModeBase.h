@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RTSTypes.h"
 #include "GameFramework/GameModeBase.h"
 #include "RTSGameModeBase.generated.h"
 
@@ -15,14 +16,15 @@ class RTSTEMPLATE_API ARTSGameModeBase : public AGameModeBase
 
 public:
 	ARTSGameModeBase();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Game")
+	FGameData GameSettings;
 	
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Game")
-	TSubclassOf<ARTSCameraPawn> CameraPawn;
-
 	FTransform SpawnTransform();
 
 public:
 	void SpawnPlayer(APlayerController* PlayerController);
+	void AssignPlayer(APlayerController* PlayerController, ARTSCameraPawn* PlayerPawn);
 	
 };

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RTSTypes.h"
 #include "UObject/Interface.h"
 #include "RTSUnitInterface.generated.h"
 
@@ -20,7 +21,9 @@ public:
 	bool bIsFound = false;
 	bool bIsSelected = false;
 	
-	FVector LocationToMove;
+	FVector CachedDestination;
+
+	virtual int GetUnitPlayerID();
 	
 	virtual bool SetUnitIsFound(bool SetFound);
 	virtual bool SetUnitIsSelected(bool SetSelected);
@@ -28,5 +31,5 @@ public:
 	bool CanBeFound();
 	bool CanBeSelected();
 
-	virtual void MoveToLocation();
+	virtual void MoveToDestination();
 };

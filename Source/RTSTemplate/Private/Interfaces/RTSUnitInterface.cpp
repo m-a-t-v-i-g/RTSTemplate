@@ -2,6 +2,11 @@
 
 #include "Interfaces/RTSUnitInterface.h"
 
+int IRTSUnitInterface::GetUnitPlayerID()
+{
+	return 0;
+}
+
 bool IRTSUnitInterface::SetUnitIsFound(bool SetFound)
 {
 	return SetFound;
@@ -22,7 +27,7 @@ bool IRTSUnitInterface::CanBeSelected()
 	return !bIsSelected;
 }
 
-void IRTSUnitInterface::MoveToLocation()
+void IRTSUnitInterface::MoveToDestination()
 {
 
 }

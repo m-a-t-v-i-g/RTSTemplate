@@ -20,8 +20,8 @@ class RTSTEMPLATE_API ARTSHUD : public AHUD
 public:
 	virtual void DrawHUD() override;
 
-	TArray<IRTSUnitInterface*> UnitsInCursor;
-	TArray<IRTSUnitInterface*> UnitsInRect;
+	TArray<IRTSUnitInterface*> CursorUnits;
+	TArray<IRTSUnitInterface*> PossibleUnits;
 	TArray<IRTSUnitInterface*> SelectedUnits;
 	
 	FVector2D InitialPoint;
@@ -36,9 +36,13 @@ public:
 	void StartSelecting();
 	void StopSelecting();
 	
-	void FoundUnitByCursor();
+	bool FoundUnitByCursor();
 	void FoundUnitsInRect(FVector2D FirstPoint, FVector2D SecondPoint);
 
+	bool IsValidPlayerID(AActor* Unit);
+	
+	TArray<AActor*> GetUnitsInCursor();
+	
 	void UpdateSelectedUnits();
 	void ClearSelectedUnits();
 	

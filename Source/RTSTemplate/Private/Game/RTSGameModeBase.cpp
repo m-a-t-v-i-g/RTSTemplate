@@ -4,6 +4,7 @@
 #include "Game/RTSCameraPawn.h"
 #include "Game/RTSHUD.h"
 #include "Game/RTSPlayerController.h"
+#include "Game/RTSPlayerState.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
@@ -11,19 +12,19 @@
 
 ARTSGameModeBase::ARTSGameModeBase()
 {
-	DefaultPawnClass = nullptr;
-
+	static ConstructorHelpers::FClassFinder<APawn> BP_RTSCameraPawn(TEXT("/Game/Game/Player/BP_RTSCameraPawn"));
+	if (BP_RTSCameraPawn.Class != nullptr)
+	{
+		DefaultPawnClass = BP_RTSCameraPawn.Class;
+	}
+	
 	HUDClass = ARTSHUD::StaticClass();
 	
 	PlayerControllerClass = ARTSPlayerController::StaticClass();
 
 	GameStateClass = AGameStateBase::StaticClass();
 
-	static ConstructorHelpers::FClassFinder<APawn> BP_RTSCameraPawn(TEXT("/Game/Game/Player/BP_RTSCameraPawn"));
-	if (BP_RTSCameraPawn.Class != nullptr)
-	{
-		CameraPawn = BP_RTSCameraPawn.Class;
-	}
+	PlayerStateClass = ARTSPlayerState::StaticClass();
 }
 
 FTransform ARTSGameModeBase::SpawnTransform()
@@ -50,11 +51,32 @@ void ARTSGameModeBase::SpawnPlayer(APlayerController* PlayerController)
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = PlayerController;
 	
-	auto SpawnPawn = GetWorld()->SpawnActor<ARTSCameraPawn>(CameraPawn, SpawnTransform(), SpawnParameters);
+	auto SpawnPawn = GetWorld()->SpawnActor<ARTSCameraPawn>(DefaultPawnClass, SpawnTransform(), SpawnParameters);
 	if (SpawnPawn)
 	{
 		PlayerController->Possess(SpawnPawn);
 		SpawnPawn->InitInputs();
 		SpawnPawn->InitHUD();
+
+		AssignPlayer(PlayerController, SpawnPawn);
 	}
+}
+
+void ARTSGameModeBase::AssignPlayer(APlayerController* PlayerController, ARTSCameraPawn* PlayerPawn)
+{
+	if (!PlayerController || !PlayerPawn) return;
+	
+	TArray<AActor*> AllPlayers;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerController::StaticClass(), AllPlayers);
+
+	const auto PlayerState = Cast<ARTSPlayerState>(PlayerController->PlayerState);
+	if (!PlayerState) return;
+	
+	const auto PlayerIndex = AllPlayers.Find(PlayerController) + 1;
+	
+	PlayerState->SetPlayerID(PlayerIndex);
+	PlayerState->SetTeamID(PlayerIndex); // данный ID временный
+	
+	PlayerPawn->SetPlayerID(PlayerIndex);
+	PlayerPawn->SetTeamID(PlayerIndex); // данный ID временный
 }

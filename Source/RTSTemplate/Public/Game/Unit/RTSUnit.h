@@ -24,7 +24,7 @@ public:
 	virtual bool SetUnitIsFound(bool IsFound) override;
 	virtual bool SetUnitIsSelected(bool IsSelected) override;
 
-	virtual void MoveToLocation() override;
+	virtual void MoveToDestination() override;
 
 	UFUNCTION(Server, Reliable)
 	void ServerMoveToLocation();

@@ -17,5 +17,5 @@ protected:
 public:
 	UFUNCTION(Server, Reliable)
 	void ServerSpawnPlayer();
-	
+
 };

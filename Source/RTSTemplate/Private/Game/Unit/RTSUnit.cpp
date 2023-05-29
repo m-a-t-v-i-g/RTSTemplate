@@ -49,7 +49,7 @@ bool ARTSUnit::SetUnitIsSelected(bool IsSelected)
 	return IsSelected;
 }
 
-void ARTSUnit::MoveToLocation()
+void ARTSUnit::MoveToDestination()
 {
 	ServerMoveToLocation();
 }
@@ -58,5 +58,5 @@ void ARTSUnit::ServerMoveToLocation_Implementation()
 {
 	if (!GetMovementComponent()) return;
 
-	UAIBlueprintHelperLibrary::SimpleMoveToLocation(GetController(), LocationToMove);
+	UAIBlueprintHelperLibrary::SimpleMoveToLocation(GetController(), CachedDestination);
 }

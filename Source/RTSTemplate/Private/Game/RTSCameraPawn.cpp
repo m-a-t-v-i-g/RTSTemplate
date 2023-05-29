@@ -9,7 +9,6 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Interfaces/RTSUnitInterface.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Kismet/KismetStringLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 ARTSCameraPawn::ARTSCameraPawn()
@@ -39,6 +38,9 @@ void ARTSCameraPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(ARTSCameraPawn, PlayerID);
+	DOREPLIFETIME(ARTSCameraPawn, TeamID);
+	DOREPLIFETIME(ARTSCameraPawn, SelectedUnits);
 }
 
 void ARTSCameraPawn::BeginPlay()
@@ -50,9 +52,7 @@ void ARTSCameraPawn::BeginPlay()
 void ARTSCameraPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
-	DebugMessage();
-	
+
 	DeltaSeconds = DeltaTime;
 
 	CameraPosition();
@@ -198,8 +198,8 @@ void ARTSCameraPawn::MoveUnitsToLocation()
 	
 	GetPlayerController()->GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
 	
-	ServerMoveUnitsToLocation(HitResult.Location);
-	ClientMoveLocationPoint(HitResult.Location);
+	ServerCreateDestination(HitResult.Location);
+	ClientCreateDestination(HitResult.Location);
 }
 
 void ARTSCameraPawn::InitInputs_Implementation()
@@ -223,34 +223,37 @@ void ARTSCameraPawn::InitHUD_Implementation()
 	HUD->OnUpdateSelectedUnits.AddUObject(this, &ARTSCameraPawn::GetSelectedUnits);
 }
 
+void ARTSCameraPawn::SetPlayerID_Implementation(int ID)
+{
+	PlayerID = ID;
+}
+
+void ARTSCameraPawn::SetTeamID_Implementation(int ID)
+{
+	TeamID = ID;
+}
+
 void ARTSCameraPawn::ServerGetSelectedUnits_Implementation(const TArray<AActor*> &NewSelectedUnits)
 {
 	SelectedUnits = NewSelectedUnits;
 }
 
-void ARTSCameraPawn::ServerMoveUnitsToLocation_Implementation(FVector HitLocation)
+void ARTSCameraPawn::ServerCreateDestination_Implementation(FVector HitLocation)
 {
 	for (auto SelectedUnit : SelectedUnits)
 	{
 		auto TempUnit = Cast<IRTSUnitInterface>(SelectedUnit);
 		if (TempUnit)
 		{
-			TempUnit->LocationToMove = HitLocation;
-			TempUnit->MoveToLocation();
+			TempUnit->CachedDestination = HitLocation;
+			TempUnit->MoveToDestination();
 		}
 	}
 }
 
-void ARTSCameraPawn::ClientMoveLocationPoint_Implementation(FVector HitLocation)
+void ARTSCameraPawn::ClientCreateDestination_Implementation(FVector HitLocation)
 {
 	if (!GetWorld()) return;
 	
 	DrawDebugSphere(GetWorld(), HitLocation, 30.0, 24, FColor::Green, false, 1.0);
-}
-
-void ARTSCameraPawn::DebugMessage_Implementation()
-{
-	FString UnitsNum = UKismetStringLibrary::Conv_IntToString(SelectedUnits.Num());
-	FString UnitsNumMessage = FString::Printf(TEXT("Units is selected by Camera Pawn: ")) + UnitsNum;
-	GEngine->AddOnScreenDebugMessage(4, 1.5, FColor::Red, UnitsNumMessage);
 }

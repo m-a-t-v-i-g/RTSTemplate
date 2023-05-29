@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "InputActionValue.h"
+#include "RTSTypes.h"
 #include "GameFramework/Pawn.h"
 #include "RTSCameraPawn.generated.h"
 
@@ -25,6 +26,12 @@ public:
 	
 protected:
 	virtual void BeginPlay() override;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Player Settings", Replicated)
+	int PlayerID = 1;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Player Settings", Replicated)
+	int TeamID = 1;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Components)
 	TObjectPtr<USceneComponent> SceneComponent;
@@ -53,7 +60,7 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, Category = "HUD")
 	TObjectPtr<ARTSHUD> HUD;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "HUD")
+	UPROPERTY(VisibleDefaultsOnly, Category = "HUD", Replicated)
 	TArray<AActor*> SelectedUnits;
 
 	float DeltaSeconds = 0.0;
@@ -83,6 +90,8 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	int GetPlayerID() { return PlayerID; }
+	
 	void CameraPosition();
 	void CameraZoom(const FInputActionValue& Value);
 	void CameraRotation(const FInputActionValue& Value);
@@ -113,16 +122,20 @@ public:
 	
 	UFUNCTION(Client, Reliable)
 	void InitHUD();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void SetPlayerID(int ID);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void SetTeamID(int ID);
 	
 	UFUNCTION(Server, Reliable)
 	void ServerGetSelectedUnits(const TArray<AActor*> &NewSelectedUnits);
 	
 	UFUNCTION(Server, Reliable)
-	void ServerMoveUnitsToLocation(FVector HitLocation);
+	void ServerCreateDestination(FVector HitLocation);
 	
 	UFUNCTION(Client, Reliable)
-	void ClientMoveLocationPoint(FVector HitLocation);
+	void ClientCreateDestination(FVector HitLocation);
 
-	UFUNCTION(Client, Reliable)
-	void DebugMessage();
 };
