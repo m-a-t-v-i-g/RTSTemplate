@@ -10,6 +10,8 @@
 #include "Interfaces/RTSUnitInterface.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
 
 ARTSCameraPawn::ARTSCameraPawn()
 {
@@ -30,6 +32,12 @@ ARTSCameraPawn::ARTSCameraPawn()
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>("Camera");
 	CameraComponent->SetupAttachment(SpringArmComponent);
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> FX_Cursor(TEXT("/Game/Cursor/FX_Cursor"));
+	if (FX_Cursor.Object != nullptr)
+	{
+		FXCursor = FX_Cursor.Object;
+	}
 	
 	PrimaryActorTick.bCanEverTick = true;
 }
@@ -38,8 +46,6 @@ void ARTSCameraPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ARTSCameraPawn, PlayerID);
-	DOREPLIFETIME(ARTSCameraPawn, TeamID);
 	DOREPLIFETIME(ARTSCameraPawn, SelectedUnits);
 }
 
@@ -73,6 +79,8 @@ void ARTSCameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 		EnhancedInputComponent->BindAction(RightMouseButtonAction, ETriggerEvent::Started, this, &ARTSCameraPawn::RightMousePressed);
 		EnhancedInputComponent->BindAction(RightMouseButtonAction, ETriggerEvent::Completed, this, &ARTSCameraPawn::RightMouseReleased);
+
+		EnhancedInputComponent->BindAction(LookAtDestinationAction, ETriggerEvent::Completed, this, &ARTSCameraPawn::LookAtDestinationPressed);
 	}
 }
 
@@ -159,14 +167,38 @@ void ARTSCameraPawn::LeftMouseReleased()
 
 void ARTSCameraPawn::RightMousePressed()
 {
-	
+
 }
 
 void ARTSCameraPawn::RightMouseReleased()
 {
+	if (HasUserTasks())
+	{
+		DeactivateOtherTasks();
+		return;
+	}
+	
+	if (HasSelectedUnits() && !HasUserTasks())
+	{
+		MoveUnitsToLocation();
+		return;
+	}
+}
+
+void ARTSCameraPawn::LookAtDestinationPressed()
+{
 	if (!HasSelectedUnits()) return;
 	
-	MoveUnitsToLocation();
+	if (!bLookAtDestinationActive)
+	{
+		bLookAtDestinationActive = true;
+		GEngine->AddOnScreenDebugMessage(2, 1.5, FColor::Cyan, TEXT("Task LookAtDestination is actived"));
+	}
+	else
+	{
+		bLookAtDestinationActive = false;
+		GEngine->AddOnScreenDebugMessage(2, 1.5, FColor::Cyan, TEXT("Task LookAtDestination is deactived"));
+	}
 }
 
 void ARTSCameraPawn::UpdateZoom()
@@ -197,9 +229,44 @@ void ARTSCameraPawn::MoveUnitsToLocation()
 	FHitResult HitResult;
 	
 	GetPlayerController()->GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
-	
+
 	ServerCreateDestination(HitResult.Location);
 	ClientCreateDestination(HitResult.Location);
+}
+
+void ARTSCameraPawn::UnitTaskCase(EUnitAssignTask NewTask)
+{
+	AssignTask = NewTask;
+	switch (AssignTask)
+	{
+	case EUnitAssignTask::Idle:
+		GEngine->AddOnScreenDebugMessage(1, 1.5, FColor::Cyan, TEXT("Task: Idle"));
+		break;
+	case EUnitAssignTask::MoveToDestination:
+		GEngine->AddOnScreenDebugMessage(1, 1.5, FColor::Cyan, TEXT("Task: Move to destination"));
+		break;
+	case EUnitAssignTask::LookAtDestination:
+		GEngine->AddOnScreenDebugMessage(1, 1.5, FColor::Cyan, TEXT("Task: Look at destination"));
+		break;
+	default:
+		break;
+	}
+}
+
+bool ARTSCameraPawn::HasUserTasks()
+{
+	if (bLookAtDestinationActive)
+	{
+		return true;
+	}
+	return false;
+}
+
+void ARTSCameraPawn::DeactivateOtherTasks()
+{
+	bLookAtDestinationActive = false;
+
+	GEngine->AddOnScreenDebugMessage(2, 1.5, FColor::Cyan, TEXT("All tasks is deactivated"));
 }
 
 void ARTSCameraPawn::InitInputs_Implementation()
@@ -223,16 +290,6 @@ void ARTSCameraPawn::InitHUD_Implementation()
 	HUD->OnUpdateSelectedUnits.AddUObject(this, &ARTSCameraPawn::GetSelectedUnits);
 }
 
-void ARTSCameraPawn::SetPlayerID_Implementation(int ID)
-{
-	PlayerID = ID;
-}
-
-void ARTSCameraPawn::SetTeamID_Implementation(int ID)
-{
-	TeamID = ID;
-}
-
 void ARTSCameraPawn::ServerGetSelectedUnits_Implementation(const TArray<AActor*> &NewSelectedUnits)
 {
 	SelectedUnits = NewSelectedUnits;
@@ -246,7 +303,7 @@ void ARTSCameraPawn::ServerCreateDestination_Implementation(FVector HitLocation)
 		if (TempUnit)
 		{
 			TempUnit->CachedDestination = HitLocation;
-			TempUnit->MoveToDestination();
+			TempUnit->RefreshTask(EUnitCurrentTask::MoveToDestination);
 		}
 	}
 }
@@ -254,6 +311,7 @@ void ARTSCameraPawn::ServerCreateDestination_Implementation(FVector HitLocation)
 void ARTSCameraPawn::ClientCreateDestination_Implementation(FVector HitLocation)
 {
 	if (!GetWorld()) return;
-	
-	DrawDebugSphere(GetWorld(), HitLocation, 30.0, 24, FColor::Green, false, 1.0);
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, FXCursor, HitLocation, FRotator::ZeroRotator,
+	                                               FVector(1.f, 1.f, 1.f), true, true, ENCPoolMethod::None, true);
 }

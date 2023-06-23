@@ -35,6 +35,32 @@ struct FHuman
 	
 };
 
+UENUM(BlueprintType)
+enum class EUserChooseTask : uint8
+{
+	Idle UMETA(DisplayName = "Idle"),
+	
+	LookAtDestination UMETA(DisplayName = "Look At"),
+};
+
+UENUM(BlueprintType)
+enum class EUnitAssignTask : uint8
+{
+	Idle UMETA(DisplayName = "Idle"),
+	
+	MoveToDestination UMETA(DisplayName = "Move To"),
+	LookAtDestination UMETA(DisplayName = "Look At"),
+};
+
+UENUM(BlueprintType)
+enum class EUnitCurrentTask : uint8
+{
+	Idle UMETA(DisplayName = "Idle"),
+	
+	MoveToDestination UMETA(DisplayName = "Move To"),
+	LookAtDestination UMETA(DisplayName = "Look At"),
+};
+
 UCLASS()
 class RTSTEMPLATE_API URTSTypes : public UBlueprintFunctionLibrary
 {

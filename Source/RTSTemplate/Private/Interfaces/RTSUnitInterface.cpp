@@ -4,7 +4,12 @@
 
 int IRTSUnitInterface::GetUnitPlayerID()
 {
-	return 0;
+	return 1;
+}
+
+int IRTSUnitInterface::GetUnitTeamID()
+{
+	return 1;
 }
 
 bool IRTSUnitInterface::SetUnitIsFound(bool SetFound)
@@ -25,6 +30,12 @@ bool IRTSUnitInterface::CanBeFound()
 bool IRTSUnitInterface::CanBeSelected()
 {
 	return !bIsSelected;
+}
+
+void IRTSUnitInterface::RefreshTask(EUnitCurrentTask NewTask)
+{
+	CurrentTask = EUnitCurrentTask::Idle;
+	CurrentTask = NewTask;
 }
 
 void IRTSUnitInterface::MoveToDestination()

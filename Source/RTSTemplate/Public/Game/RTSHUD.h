@@ -45,9 +45,7 @@ public:
 	
 	void UpdateSelectedUnits();
 	void ClearSelectedUnits();
-	
-	void DebugUnits();
-	
+
 	UFUNCTION(Client, Reliable)
 	void DrawRectangle();
 

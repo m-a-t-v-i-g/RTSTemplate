@@ -15,14 +15,14 @@ class RTSTEMPLATE_API ARTSHuman : public ACharacter, public IRTSUnitInterface
 
 public:
 	ARTSHuman();
-	
+
+protected:
 	UPROPERTY(EditInstanceOnly, Category = "Unit")
 	FUnit Unit; 
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Human")
+	UPROPERTY(EditAnywhere, Category = "Human")
 	FHuman Human;
 	
-protected:
 	virtual void BeginPlay() override;
 
 public:
@@ -30,6 +30,7 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	virtual int GetUnitPlayerID() override;
+	virtual int GetUnitTeamID() override;
 	
 	virtual bool SetUnitIsFound(bool IsFound) override;
 	virtual bool SetUnitIsSelected(bool IsSelected) override;

@@ -3,6 +3,7 @@
 #include "Game/RTSHUD.h"
 
 #include "Game/RTSCameraPawn.h"
+#include "Game/RTSPlayerState.h"
 #include "Kismet/KismetStringLibrary.h"
 
 void ARTSHUD::DrawHUD()
@@ -85,7 +86,6 @@ void ARTSHUD::StopSelecting()
 	bSelecting = false;
 
 	UpdateSelectedUnits();
-	DebugUnits();
 }
 
 bool ARTSHUD::FoundUnitByCursor()
@@ -155,13 +155,13 @@ void ARTSHUD::FoundUnitsInRect(FVector2D FirstPoint, FVector2D SecondPoint)
 
 bool ARTSHUD::IsValidPlayerID(AActor* Unit)
 {
-	auto CameraPawn = Cast<ARTSCameraPawn>(GetOwningPlayerController()->GetPawn());
-	if (!CameraPawn) return false;
+	auto PlayerState = Cast<ARTSPlayerState>(GetOwningPlayerController()->PlayerState);
+	if (!PlayerState) return false;
 	
 	auto TempUnit = Cast<IRTSUnitInterface>(Unit);
 	if (!TempUnit) return false;
 	
-	if (CameraPawn->GetPlayerID() == TempUnit->GetUnitPlayerID())
+	if (PlayerState->GetPlayerID() == TempUnit->GetUnitPlayerID())
 	{
 		return true;
 	}
@@ -232,17 +232,6 @@ void ARTSHUD::ClearSelectedUnits()
 	CursorUnits.Empty();
 }
 
-void ARTSHUD::DebugUnits()
-{
-	if (SelectedUnits.Num() <= 0) return;
-	
-	for (auto SelectedUnit : SelectedUnits)
-	{
-		auto SelectedActor = Cast<AActor>(SelectedUnit);
-		UE_LOG(LogTemp, Warning, TEXT("%s"), *SelectedActor->GetName());
-	}
-}
-
 void ARTSHUD::DrawRectangle_Implementation()
 {
 	CurrentPoint = GetMousePosition();
@@ -254,13 +243,13 @@ void ARTSHUD::DebugMessage_Implementation()
 {
 	FString UnitsInCursorNum = UKismetStringLibrary::Conv_IntToString(CursorUnits.Num());
 	FString UnitsInCursorNumMessage = FString::Printf(TEXT("Units by cursor found: ")) + UnitsInCursorNum;
-	GEngine->AddOnScreenDebugMessage(3, 1.5, FColor::Yellow, UnitsInCursorNumMessage);
+	GEngine->AddOnScreenDebugMessage(102, 1.5, FColor::Yellow, UnitsInCursorNumMessage);
 
 	FString UnitsInRectNum = UKismetStringLibrary::Conv_IntToString(PossibleUnits.Num());
 	FString UnitsInRectNumMessage = FString::Printf(TEXT("Possible units: ")) + UnitsInRectNum;
-	GEngine->AddOnScreenDebugMessage(2, 1.5, FColor::Yellow, UnitsInRectNumMessage);
+	GEngine->AddOnScreenDebugMessage(101, 1.5, FColor::Yellow, UnitsInRectNumMessage);
 
 	FString UnitsNum = UKismetStringLibrary::Conv_IntToString(SelectedUnits.Num());
 	FString UnitsNumMessage = FString::Printf(TEXT("Units are selected: ")) + UnitsNum;
-	GEngine->AddOnScreenDebugMessage(1, 1.5, FColor::Yellow, UnitsNumMessage);
+	GEngine->AddOnScreenDebugMessage(100, 1.5, FColor::Yellow, UnitsNumMessage);
 }

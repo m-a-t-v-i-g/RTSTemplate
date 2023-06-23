@@ -12,6 +12,7 @@ ARTSHuman::ARTSHuman()
 	GetCharacterMovement()->RotationRate = FRotator(0.0, 300.0, 0.0);
 
 	Unit.PlayerID = 1;
+	Unit.TeamID = 1;
 
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -40,6 +41,11 @@ int ARTSHuman::GetUnitPlayerID()
 	return Unit.PlayerID;
 }
 
+int ARTSHuman::GetUnitTeamID()
+{
+	return Unit.TeamID;
+}
+
 bool ARTSHuman::SetUnitIsFound(bool IsFound)
 {
 	bIsFound = IsFound;
@@ -56,5 +62,5 @@ void ARTSHuman::MoveToDestination()
 {
 	if (!GetMovementComponent()) return;
 
-	UAIBlueprintHelperLibrary::SimpleMoveToLocation(GetController(), CachedDestination);
+	//UAIBlueprintHelperLibrary::SimpleMoveToLocation(GetController(), CachedDestination);
 }

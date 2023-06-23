@@ -76,7 +76,4 @@ void ARTSGameModeBase::AssignPlayer(APlayerController* PlayerController, ARTSCam
 	
 	PlayerState->SetPlayerID(PlayerIndex);
 	PlayerState->SetTeamID(PlayerIndex); // данный ID временный
-	
-	PlayerPawn->SetPlayerID(PlayerIndex);
-	PlayerPawn->SetTeamID(PlayerIndex); // данный ID временный
 }

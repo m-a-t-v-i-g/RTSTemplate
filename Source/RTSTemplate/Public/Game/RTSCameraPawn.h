@@ -12,6 +12,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
+class UNiagaraSystem;
 class ARTSHUD;
 
 UCLASS()
@@ -27,12 +28,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "Player Settings", Replicated)
-	int PlayerID = 1;
-
-	UPROPERTY(VisibleDefaultsOnly, Category = "Player Settings", Replicated)
-	int TeamID = 1;
-	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Components)
 	TObjectPtr<USceneComponent> SceneComponent;
 	
@@ -57,9 +52,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> CameraRotationAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> LookAtDestinationAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Input)
+	TObjectPtr<UNiagaraSystem> FXCursor;
+	
 	UPROPERTY(VisibleDefaultsOnly, Category = "HUD")
 	TObjectPtr<ARTSHUD> HUD;
-
+	
 	UPROPERTY(VisibleDefaultsOnly, Category = "HUD", Replicated)
 	TArray<AActor*> SelectedUnits;
 
@@ -78,20 +79,24 @@ protected:
 	int ZoomDegree = 6;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera|Zoom")
-	int ZoomMax = 10;
+	int ZoomMax = 16;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera|Zoom")
 	float ZoomStep = 200.0;
 
 	bool bRotatingCamera = false;
+
+	EUserChooseTask ChooseTask = EUserChooseTask::Idle;
+	EUnitAssignTask AssignTask = EUnitAssignTask::Idle;
+
+private:
+	bool bLookAtDestinationActive = false;
 	
 public:
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	int GetPlayerID() { return PlayerID; }
-	
 	void CameraPosition();
 	void CameraZoom(const FInputActionValue& Value);
 	void CameraRotation(const FInputActionValue& Value);
@@ -101,6 +106,8 @@ public:
 	
 	void RightMousePressed();
 	void RightMouseReleased();
+
+	void LookAtDestinationPressed();
 	
 	void UpdateZoom();
 
@@ -108,6 +115,11 @@ public:
 	bool HasSelectedUnits();
 	
 	void MoveUnitsToLocation();
+	
+	void UnitTaskCase(EUnitAssignTask NewTask);
+
+	bool HasUserTasks();
+	void DeactivateOtherTasks();
 	
 protected:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Camera Pawn")
@@ -123,12 +135,6 @@ public:
 	UFUNCTION(Client, Reliable)
 	void InitHUD();
 
-	UFUNCTION(NetMulticast, Reliable)
-	void SetPlayerID(int ID);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void SetTeamID(int ID);
-	
 	UFUNCTION(Server, Reliable)
 	void ServerGetSelectedUnits(const TArray<AActor*> &NewSelectedUnits);
 	
