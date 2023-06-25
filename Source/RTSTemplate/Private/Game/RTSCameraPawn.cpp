@@ -15,9 +15,13 @@
 #include "Game/RTSPlayerState.h"
 #include "Game/AI/RTSAIController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Widgets/RTSHUDWidget.h"
 
 ARTSCameraPawn::ARTSCameraPawn()
 {
+	static ConstructorHelpers::FClassFinder<URTSHUDWidget> WB_HUDWidget(TEXT("/Game/Widgets/WB_HUDWidget"));
+	HUDWidget = WB_HUDWidget.Class;
+	
 	SceneComponent = CreateDefaultSubobject<USceneComponent>("Scene");
 	SetRootComponent(SceneComponent);
 	
@@ -327,6 +331,7 @@ void ARTSCameraPawn::InitHUD_Implementation()
 
 	HUD = Cast<ARTSHUD>(GetHUD);
 	HUD->OnUpdateSelectedUnits.AddUObject(this, &ARTSCameraPawn::SaveSelectedUnits);
+	HUD->InitWidgets(HUDWidget);
 }
 
 void ARTSCameraPawn::ServerGetSelectedUnits_Implementation(const TArray<AActor*> &NewSelectedUnits)

@@ -7,6 +7,7 @@
 #include "Interfaces/RTSUnitInterface.h"
 #include "RTSHUD.generated.h"
 
+class URTSHUDWidget;
 class ARTSPlayerController;
 class ARTSUnit;
 
@@ -19,7 +20,9 @@ class RTSTEMPLATE_API ARTSHUD : public AHUD
 	
 public:
 	virtual void DrawHUD() override;
-
+	
+	TObjectPtr<URTSHUDWidget> HUDWidget;
+	
 	TArray<IRTSUnitInterface*> CursorUnits;
 	TArray<IRTSUnitInterface*> PossibleUnits;
 	TArray<IRTSUnitInterface*> SelectedUnits;
@@ -32,6 +35,8 @@ public:
 	FOnUpdateSelectedUnits OnUpdateSelectedUnits;
 	
 	FVector2D GetMousePosition();
+
+	void InitWidgets(TSubclassOf<URTSHUDWidget> Widget);
 	
 	void StartSelecting();
 	void StopSelecting();

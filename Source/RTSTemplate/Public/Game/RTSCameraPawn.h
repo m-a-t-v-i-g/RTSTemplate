@@ -8,6 +8,7 @@
 #include "GameFramework/Pawn.h"
 #include "RTSCameraPawn.generated.h"
 
+class URTSHUDWidget;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
@@ -28,6 +29,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widgets")
+	TSubclassOf<URTSHUDWidget> HUDWidget;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Components)
 	TObjectPtr<USceneComponent> SceneComponent;
 	

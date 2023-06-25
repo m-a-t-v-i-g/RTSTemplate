@@ -2,9 +2,10 @@
 
 #include "Game/RTSHUD.h"
 
-#include "Game/RTSCameraPawn.h"
+#include "Blueprint/UserWidget.h"
 #include "Game/RTSPlayerState.h"
 #include "Kismet/KismetStringLibrary.h"
+#include "Widgets/RTSHUDWidget.h"
 
 void ARTSHUD::DrawHUD()
 {
@@ -34,6 +35,19 @@ FVector2D ARTSHUD::GetMousePosition()
 	GetOwner->GetMousePosition(MousePosX, MousePosY);
 
 	return FVector2D(MousePosX, MousePosY);
+}
+
+void ARTSHUD::InitWidgets(TSubclassOf<URTSHUDWidget> Widget)
+{
+	auto CreateHUDWidget = CreateWidget<URTSHUDWidget>(GetOwningPlayerController(), Widget);
+	if (CreateHUDWidget)
+	{
+		HUDWidget = CreateHUDWidget;
+	}
+	if (!HUDWidget->IsInViewport())
+	{
+		HUDWidget->AddToViewport();
+	}
 }
 
 void ARTSHUD::StartSelecting()

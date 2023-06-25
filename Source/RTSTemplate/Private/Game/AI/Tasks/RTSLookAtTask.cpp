@@ -3,6 +3,7 @@
 #include "Game/AI/Tasks/RTSLookAtTask.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "Interfaces/RTSUnitInterface.h"
 
 URTSLookAtTask::URTSLookAtTask()
@@ -18,7 +19,8 @@ EBTNodeResult::Type URTSLookAtTask::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	
 	const auto Pawn = Cast<IRTSUnitInterface>(Controller->GetPawn());
 	if (!Pawn) return EBTNodeResult::Failed;
-	
+
+	Controller->GetPawn()->GetMovementComponent()->StopMovementImmediately();
 	Controller->SetFocalPoint(Pawn->GetDestination());
 	Blackboard->SetValueAsBool("LookAt", false);
 
