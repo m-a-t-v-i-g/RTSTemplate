@@ -12,7 +12,9 @@
 #include "Net/UnrealNetwork.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Game/RTSPlayerState.h"
 #include "Game/AI/RTSAIController.h"
+#include "Kismet/GameplayStatics.h"
 
 ARTSCameraPawn::ARTSCameraPawn()
 {
@@ -53,7 +55,7 @@ void ARTSCameraPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 void ARTSCameraPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 }
 
 void ARTSCameraPawn::Tick(float DeltaTime)
@@ -213,6 +215,27 @@ void ARTSCameraPawn::UpdateZoom()
 	
 	float CurrentZoom = SpringArmComponent->TargetArmLength;
 	SpringArmComponent->TargetArmLength = UKismetMathLibrary::FInterpTo(CurrentZoom, ZoomDegree * ZoomStep, DeltaSeconds, 4.5);
+}
+
+void ARTSCameraPawn::FindControlledUnits()
+{
+	auto CameraPlayerState = Cast<ARTSPlayerState>(GetPlayerController()->PlayerState);
+	if (!CameraPlayerState) return;
+	
+	TArray<AActor*> ControlledActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARTSAIController::StaticClass(), ControlledActors);
+	
+	for (auto ControlledActor : ControlledActors)
+	{
+		auto ControlledUnit = Cast<ARTSAIController>(ControlledActor);
+		if (!ControlledUnit) return;
+		
+		if (CameraPlayerState->GetPlayerID() == ControlledUnit->GetPlayerID())
+		{
+			ControlledUnit->SetOwner(this);
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Owner: %s"), *ControlledUnit->GetName(), *ControlledUnit->GetOwner()->GetName());
+		}
+	}
 }
 
 void ARTSCameraPawn::SaveSelectedUnits(const TArray<AActor*> &NewSelectedUnits)

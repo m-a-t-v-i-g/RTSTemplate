@@ -110,6 +110,8 @@ public:
 	
 	void UpdateZoom();
 
+	void FindControlledUnits();
+	
 	void SaveSelectedUnits(const TArray<AActor*>& NewSelectedUnits);
 	bool HasSelectedUnits();
 

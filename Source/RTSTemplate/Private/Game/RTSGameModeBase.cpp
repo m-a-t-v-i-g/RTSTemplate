@@ -55,10 +55,12 @@ void ARTSGameModeBase::SpawnPlayer(APlayerController* PlayerController)
 	if (SpawnPawn)
 	{
 		PlayerController->Possess(SpawnPawn);
+		
+		AssignPlayer(PlayerController, SpawnPawn);
+
 		SpawnPawn->InitInputs();
 		SpawnPawn->InitHUD();
-
-		AssignPlayer(PlayerController, SpawnPawn);
+		SpawnPawn->FindControlledUnits();
 	}
 }
 
@@ -75,5 +77,5 @@ void ARTSGameModeBase::AssignPlayer(APlayerController* PlayerController, ARTSCam
 	const auto PlayerIndex = AllPlayers.Find(PlayerController) + 1;
 	
 	PlayerState->SetPlayerID(PlayerIndex);
-	PlayerState->SetTeamID(PlayerIndex); // данный ID временный
+	PlayerState->SetTeamID(PlayerIndex); // данный ID временны
 }

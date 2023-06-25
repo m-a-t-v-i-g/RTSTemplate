@@ -4,7 +4,6 @@
 #include "Game/RTSGameModeBase.h"
 #include "Kismet/GameplayStatics.h"
 
-
 void ARTSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();

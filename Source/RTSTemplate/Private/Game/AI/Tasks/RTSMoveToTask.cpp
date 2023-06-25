@@ -19,8 +19,11 @@ EBTNodeResult::Type URTSMoveToTask::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 
 	const auto Pawn = Cast<IRTSUnitInterface>(Controller->GetPawn());
 	if (!Pawn) return EBTNodeResult::Failed;
-
+	
 	UAIBlueprintHelperLibrary::SimpleMoveToLocation(Controller, Pawn->GetDestination());
+	
+	Controller->ClearFocus(EAIFocusPriority::Gameplay);
 	Blackboard->SetValueAsBool("MoveTo", false);
+	
 	return EBTNodeResult::Succeeded;
 }

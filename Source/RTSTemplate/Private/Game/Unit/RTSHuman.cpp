@@ -2,7 +2,6 @@
 
 #include "Game/Unit/RTSHuman.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
-#include "Game/AI/RTSAIController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 ARTSHuman::ARTSHuman()
@@ -10,7 +9,7 @@ ARTSHuman::ARTSHuman()
 	bUseControllerRotationYaw = false;
 
 	GetCharacterMovement()->bUseControllerDesiredRotation = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.0, 300.0, 0.0);
+	GetCharacterMovement()->RotationRate = FRotator(0.0, 360.0, 0.0);
 
 	Unit.PlayerID = 1;
 	Unit.TeamID = 1;
@@ -22,7 +21,11 @@ ARTSHuman::ARTSHuman()
 void ARTSHuman::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	if (GetOwner())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Owner: %s"),*GetName(), *GetOwner()->GetName());
+	}
 }
 
 void ARTSHuman::Tick(float DeltaTime)
