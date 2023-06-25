@@ -34,7 +34,4 @@ public:
 	
 	virtual bool SetUnitIsFound(bool IsFound) override;
 	virtual bool SetUnitIsSelected(bool IsSelected) override;
-
-	virtual void MoveToDestination() override;
-
 };

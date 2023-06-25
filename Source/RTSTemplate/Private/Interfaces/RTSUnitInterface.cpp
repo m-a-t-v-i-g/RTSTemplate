@@ -32,14 +32,12 @@ bool IRTSUnitInterface::CanBeSelected()
 	return !bIsSelected;
 }
 
-void IRTSUnitInterface::RefreshTask(EUnitCurrentTask NewTask)
+void IRTSUnitInterface::SetDestination(FVector Goal)
 {
-	CurrentTask = EUnitCurrentTask::Idle;
-	CurrentTask = NewTask;
+	CachedDestination = Goal;
 }
 
-void IRTSUnitInterface::MoveToDestination()
+FVector IRTSUnitInterface::GetDestination()
 {
-
+	return CachedDestination;
 }
-

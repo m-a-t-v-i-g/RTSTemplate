@@ -2,6 +2,7 @@
 
 #include "Game/Unit/RTSHuman.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
+#include "Game/AI/RTSAIController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 ARTSHuman::ARTSHuman()
@@ -56,11 +57,4 @@ bool ARTSHuman::SetUnitIsSelected(bool IsSelected)
 {
 	bIsSelected = IsSelected;
 	return IsSelected;
-}
-
-void ARTSHuman::MoveToDestination()
-{
-	if (!GetMovementComponent()) return;
-
-	//UAIBlueprintHelperLibrary::SimpleMoveToLocation(GetController(), CachedDestination);
 }

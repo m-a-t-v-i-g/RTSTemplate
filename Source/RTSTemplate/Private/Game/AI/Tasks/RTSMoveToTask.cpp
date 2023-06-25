@@ -1,16 +1,17 @@
 // Real Time Strategy C++ template by matvig.
 
-#include "Game/AI/Tasks/RTSGetDestinationTask.h"
+#include "Game/AI/Tasks/RTSMoveToTask.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Interfaces/RTSUnitInterface.h"
 
-URTSGetDestinationTask::URTSGetDestinationTask()
+URTSMoveToTask::URTSMoveToTask()
 {
-	NodeName = "Get Destination";
+	NodeName = "Move To";
 }
 
-EBTNodeResult::Type URTSGetDestinationTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type URTSMoveToTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	const auto Controller = OwnerComp.GetAIOwner();
 	const auto Blackboard = OwnerComp.GetBlackboardComponent();
@@ -19,7 +20,7 @@ EBTNodeResult::Type URTSGetDestinationTask::ExecuteTask(UBehaviorTreeComponent& 
 	const auto Pawn = Cast<IRTSUnitInterface>(Controller->GetPawn());
 	if (!Pawn) return EBTNodeResult::Failed;
 
-	Blackboard->SetValueAsVector(DestinationKey.SelectedKeyName, Pawn->CachedDestination);
+	UAIBlueprintHelperLibrary::SimpleMoveToLocation(Controller, Pawn->GetDestination());
+	Blackboard->SetValueAsBool("MoveTo", false);
 	return EBTNodeResult::Succeeded;
 }
-

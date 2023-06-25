@@ -22,9 +22,7 @@ public:
 	bool bIsSelected = false;
 	
 	FVector CachedDestination;
-	
-	EUnitCurrentTask CurrentTask = EUnitCurrentTask::Idle;
-	
+
 	virtual int GetUnitPlayerID();
 	virtual int GetUnitTeamID();
 	
@@ -34,7 +32,6 @@ public:
 	bool CanBeFound();
 	bool CanBeSelected();
 
-	virtual void RefreshTask(EUnitCurrentTask NewTask);
-	
-	virtual void MoveToDestination();
+	virtual void SetDestination(FVector Goal);
+	FVector GetDestination();
 };

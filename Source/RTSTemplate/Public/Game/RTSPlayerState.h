@@ -16,6 +16,8 @@ private:
 	int TeamID;
 
 public:
+	virtual void BeginPlay() override;
+	
 	int GetPlayerID() const { return PlayerID; }
 	int GetTeamID() const { return TeamID; }
 	
@@ -24,5 +26,4 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void SetTeamID(int ID);
-
 };

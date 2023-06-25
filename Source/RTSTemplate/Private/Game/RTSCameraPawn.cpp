@@ -12,6 +12,7 @@
 #include "Net/UnrealNetwork.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Game/AI/RTSAIController.h"
 
 ARTSCameraPawn::ARTSCameraPawn()
 {
@@ -80,7 +81,7 @@ void ARTSCameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EnhancedInputComponent->BindAction(RightMouseButtonAction, ETriggerEvent::Started, this, &ARTSCameraPawn::RightMousePressed);
 		EnhancedInputComponent->BindAction(RightMouseButtonAction, ETriggerEvent::Completed, this, &ARTSCameraPawn::RightMouseReleased);
 
-		EnhancedInputComponent->BindAction(LookAtDestinationAction, ETriggerEvent::Completed, this, &ARTSCameraPawn::LookAtDestinationPressed);
+		EnhancedInputComponent->BindAction(LookAtAction, ETriggerEvent::Completed, this, &ARTSCameraPawn::LookAtPressed);
 	}
 }
 
@@ -153,15 +154,22 @@ void ARTSCameraPawn::CameraRotation(const FInputActionValue& Value)
 
 void ARTSCameraPawn::LeftMousePressed()
 {
-	if (!HUD) return;
+	if (HasActivatedUserTasks()) return;
 	
+	if (!HUD) return;
 	HUD->StartSelecting();
 }
 
 void ARTSCameraPawn::LeftMouseReleased()
 {
-	if (!HUD) return;
+	if (HasActivatedUserTasks())
+	{
+		OrderLookAtDestination();
+		ChooseUserTask(EUserTaskForUnit::Empty);
+		return;
+	}
 
+	if (!HUD) return;
 	HUD->StopSelecting();
 }
 
@@ -172,32 +180,30 @@ void ARTSCameraPawn::RightMousePressed()
 
 void ARTSCameraPawn::RightMouseReleased()
 {
-	if (HasUserTasks())
+	if (HasActivatedUserTasks())
 	{
-		DeactivateOtherTasks();
+		ChooseUserTask(EUserTaskForUnit::Empty);
 		return;
 	}
 	
-	if (HasSelectedUnits() && !HasUserTasks())
+	if (HasSelectedUnits() && !HasActivatedUserTasks())
 	{
-		MoveUnitsToLocation();
+		OrderMoveToDestination();
 		return;
 	}
 }
 
-void ARTSCameraPawn::LookAtDestinationPressed()
+void ARTSCameraPawn::LookAtPressed()
 {
 	if (!HasSelectedUnits()) return;
 	
-	if (!bLookAtDestinationActive)
+	if (!bLookAtActive)
 	{
-		bLookAtDestinationActive = true;
-		GEngine->AddOnScreenDebugMessage(2, 1.5, FColor::Cyan, TEXT("Task LookAtDestination is actived"));
+		ChooseUserTask(EUserTaskForUnit::LookAt);
 	}
 	else
 	{
-		bLookAtDestinationActive = false;
-		GEngine->AddOnScreenDebugMessage(2, 1.5, FColor::Cyan, TEXT("Task LookAtDestination is deactived"));
+		ChooseUserTask(EUserTaskForUnit::Empty);
 	}
 }
 
@@ -209,7 +215,7 @@ void ARTSCameraPawn::UpdateZoom()
 	SpringArmComponent->TargetArmLength = UKismetMathLibrary::FInterpTo(CurrentZoom, ZoomDegree * ZoomStep, DeltaSeconds, 4.5);
 }
 
-void ARTSCameraPawn::GetSelectedUnits(const TArray<AActor*> &NewSelectedUnits)
+void ARTSCameraPawn::SaveSelectedUnits(const TArray<AActor*> &NewSelectedUnits)
 {
 	if (!HUD) return;
 
@@ -222,49 +228,59 @@ bool ARTSCameraPawn::HasSelectedUnits()
 	return SelectedUnits.Num() > 0;
 }
 
-void ARTSCameraPawn::MoveUnitsToLocation()
+void ARTSCameraPawn::OrderMoveToDestination()
 {
 	if (!GetPlayerController()) return;
 	
 	FHitResult HitResult;
 	
 	GetPlayerController()->GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
-
-	ServerCreateDestination(HitResult.Location);
+	
+	ServerMoveToDestination(HitResult.Location);
 	ClientCreateDestination(HitResult.Location);
 }
 
-void ARTSCameraPawn::UnitTaskCase(EUnitAssignTask NewTask)
+void ARTSCameraPawn::OrderLookAtDestination()
 {
-	AssignTask = NewTask;
-	switch (AssignTask)
+	if (!GetPlayerController()) return;
+	
+	FHitResult HitResult;
+	
+	GetPlayerController()->GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
+	
+	ServerLookAtDestination(HitResult.Location);
+	ClientCreateDestination(HitResult.Location);
+}
+
+void ARTSCameraPawn::ChooseUserTask(EUserTaskForUnit NewUserTask)
+{
+	UserTaskForUnit = NewUserTask;
+	switch(UserTaskForUnit)
 	{
-	case EUnitAssignTask::Idle:
-		GEngine->AddOnScreenDebugMessage(1, 1.5, FColor::Cyan, TEXT("Task: Idle"));
+	case EUserTaskForUnit::Empty:
+		DeactivateUserTasks();
 		break;
-	case EUnitAssignTask::MoveToDestination:
-		GEngine->AddOnScreenDebugMessage(1, 1.5, FColor::Cyan, TEXT("Task: Move to destination"));
-		break;
-	case EUnitAssignTask::LookAtDestination:
-		GEngine->AddOnScreenDebugMessage(1, 1.5, FColor::Cyan, TEXT("Task: Look at destination"));
+	case EUserTaskForUnit::LookAt:
+		bLookAtActive = true;
+		GEngine->AddOnScreenDebugMessage(2, 1.5, FColor::Cyan, TEXT("Task 'Look At' is actived"));
 		break;
 	default:
 		break;
 	}
 }
 
-bool ARTSCameraPawn::HasUserTasks()
+bool ARTSCameraPawn::HasActivatedUserTasks()
 {
-	if (bLookAtDestinationActive)
+	if (bLookAtActive)
 	{
 		return true;
 	}
 	return false;
 }
 
-void ARTSCameraPawn::DeactivateOtherTasks()
+void ARTSCameraPawn::DeactivateUserTasks()
 {
-	bLookAtDestinationActive = false;
+	bLookAtActive = false;
 
 	GEngine->AddOnScreenDebugMessage(2, 1.5, FColor::Cyan, TEXT("All tasks is deactivated"));
 }
@@ -287,7 +303,7 @@ void ARTSCameraPawn::InitHUD_Implementation()
 	if (!GetHUD) return;
 
 	HUD = Cast<ARTSHUD>(GetHUD);
-	HUD->OnUpdateSelectedUnits.AddUObject(this, &ARTSCameraPawn::GetSelectedUnits);
+	HUD->OnUpdateSelectedUnits.AddUObject(this, &ARTSCameraPawn::SaveSelectedUnits);
 }
 
 void ARTSCameraPawn::ServerGetSelectedUnits_Implementation(const TArray<AActor*> &NewSelectedUnits)
@@ -295,15 +311,32 @@ void ARTSCameraPawn::ServerGetSelectedUnits_Implementation(const TArray<AActor*>
 	SelectedUnits = NewSelectedUnits;
 }
 
-void ARTSCameraPawn::ServerCreateDestination_Implementation(FVector HitLocation)
+void ARTSCameraPawn::ServerMoveToDestination_Implementation(FVector HitLocation)
 {
 	for (auto SelectedUnit : SelectedUnits)
 	{
-		auto TempUnit = Cast<IRTSUnitInterface>(SelectedUnit);
-		if (TempUnit)
+		const auto SelectedPawn = Cast<APawn>(SelectedUnit);
+		const auto PawnController = Cast<ARTSAIController>(SelectedPawn->GetController());
+		const auto TempUnit = Cast<IRTSUnitInterface>(SelectedPawn);
+		if (PawnController && TempUnit)
 		{
-			TempUnit->CachedDestination = HitLocation;
-			TempUnit->RefreshTask(EUnitCurrentTask::MoveToDestination);
+			PawnController->MoveToDestination();
+			TempUnit->SetDestination(HitLocation);
+		}
+	}
+}
+
+void ARTSCameraPawn::ServerLookAtDestination_Implementation(FVector HitLocation)
+{
+	for (auto SelectedUnit : SelectedUnits)
+	{
+		const auto SelectedPawn = Cast<APawn>(SelectedUnit);
+		const auto PawnController = Cast<ARTSAIController>(SelectedPawn->GetController());
+		const auto TempUnit = Cast<IRTSUnitInterface>(SelectedPawn);
+		if (PawnController && TempUnit)
+		{
+			PawnController->LookAtDestination();
+			TempUnit->SetDestination(HitLocation);
 		}
 	}
 }

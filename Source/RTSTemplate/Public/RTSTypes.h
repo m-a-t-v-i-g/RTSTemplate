@@ -36,29 +36,11 @@ struct FHuman
 };
 
 UENUM(BlueprintType)
-enum class EUserChooseTask : uint8
+enum class EUserTaskForUnit : uint8
 {
-	Idle UMETA(DisplayName = "Idle"),
+	Empty UMETA(DisplayName = "Empty"),
 	
-	LookAtDestination UMETA(DisplayName = "Look At"),
-};
-
-UENUM(BlueprintType)
-enum class EUnitAssignTask : uint8
-{
-	Idle UMETA(DisplayName = "Idle"),
-	
-	MoveToDestination UMETA(DisplayName = "Move To"),
-	LookAtDestination UMETA(DisplayName = "Look At"),
-};
-
-UENUM(BlueprintType)
-enum class EUnitCurrentTask : uint8
-{
-	Idle UMETA(DisplayName = "Idle"),
-	
-	MoveToDestination UMETA(DisplayName = "Move To"),
-	LookAtDestination UMETA(DisplayName = "Look At"),
+	LookAt UMETA(DisplayName = "Look At"),
 };
 
 UCLASS()

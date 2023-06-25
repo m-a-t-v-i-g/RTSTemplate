@@ -53,7 +53,7 @@ protected:
 	TObjectPtr<UInputAction> CameraRotationAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputAction> LookAtDestinationAction;
+	TObjectPtr<UInputAction> LookAtAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Input)
 	TObjectPtr<UNiagaraSystem> FXCursor;
@@ -86,11 +86,10 @@ protected:
 
 	bool bRotatingCamera = false;
 
-	EUserChooseTask ChooseTask = EUserChooseTask::Idle;
-	EUnitAssignTask AssignTask = EUnitAssignTask::Idle;
+	EUserTaskForUnit UserTaskForUnit = EUserTaskForUnit::Empty;
 
 private:
-	bool bLookAtDestinationActive = false;
+	bool bLookAtActive = false;
 	
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -107,19 +106,20 @@ public:
 	void RightMousePressed();
 	void RightMouseReleased();
 
-	void LookAtDestinationPressed();
+	void LookAtPressed();
 	
 	void UpdateZoom();
 
-	void GetSelectedUnits(const TArray<AActor*>& NewSelectedUnits);
+	void SaveSelectedUnits(const TArray<AActor*>& NewSelectedUnits);
 	bool HasSelectedUnits();
-	
-	void MoveUnitsToLocation();
-	
-	void UnitTaskCase(EUnitAssignTask NewTask);
 
-	bool HasUserTasks();
-	void DeactivateOtherTasks();
+	void OrderMoveToDestination();
+	void OrderLookAtDestination();
+
+	void ChooseUserTask(EUserTaskForUnit NewUserTask);
+	
+	bool HasActivatedUserTasks();
+	void DeactivateUserTasks();
 	
 protected:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Camera Pawn")
@@ -139,7 +139,10 @@ public:
 	void ServerGetSelectedUnits(const TArray<AActor*> &NewSelectedUnits);
 	
 	UFUNCTION(Server, Reliable)
-	void ServerCreateDestination(FVector HitLocation);
+	void ServerMoveToDestination(FVector HitLocation);
+
+	UFUNCTION(Server, Reliable)
+	void ServerLookAtDestination(FVector HitLocation);
 	
 	UFUNCTION(Client, Reliable)
 	void ClientCreateDestination(FVector HitLocation);

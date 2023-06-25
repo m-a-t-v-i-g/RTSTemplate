@@ -1,16 +1,17 @@
 // Real Time Strategy C++ template by matvig.
 
-#include "Game/AI/Tasks/RTSRefreshTaskTask.h"
+#include "Game/AI/Tasks/RTSLookAtTask.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Interfaces/RTSUnitInterface.h"
 
-URTSRefreshTaskTask::URTSRefreshTaskTask()
+URTSLookAtTask::URTSLookAtTask()
 {
-	NodeName = "Refresh Task";
+	NodeName = "Look At";
 }
 
-EBTNodeResult::Type URTSRefreshTaskTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type URTSLookAtTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	const auto Controller = OwnerComp.GetAIOwner();
 	const auto Blackboard = OwnerComp.GetBlackboardComponent();
@@ -18,7 +19,8 @@ EBTNodeResult::Type URTSRefreshTaskTask::ExecuteTask(UBehaviorTreeComponent& Own
 
 	const auto Pawn = Cast<IRTSUnitInterface>(Controller->GetPawn());
 	if (!Pawn) return EBTNodeResult::Failed;
-
-	Blackboard->SetValueAsName(CurrentTaskKey.SelectedKeyName, "Idle");
+	
+	Blackboard->SetValueAsBool("LookAt", false);
 	return EBTNodeResult::Succeeded;
 }
+

@@ -49,11 +49,6 @@ bool ARTSUnit::SetUnitIsSelected(bool IsSelected)
 	return IsSelected;
 }
 
-void ARTSUnit::MoveToDestination()
-{
-	ServerMoveToLocation();
-}
-
 void ARTSUnit::ServerMoveToLocation_Implementation()
 {
 	if (!GetMovementComponent()) return;

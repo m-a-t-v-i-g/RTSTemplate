@@ -4,20 +4,20 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "RTSGetDestinationTask.generated.h"
+#include "RTSLookAtTask.generated.h"
 
 UCLASS()
-class RTSTEMPLATE_API URTSGetDestinationTask : public UBTTaskNode
+class RTSTEMPLATE_API URTSLookAtTask : public UBTTaskNode
 {
 	GENERATED_BODY()
 
 public:
-	URTSGetDestinationTask();
+	URTSLookAtTask();
 	
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-	FBlackboardKeySelector DestinationKey;
+	FBlackboardKeySelector LookAtKey;
 	
 };
